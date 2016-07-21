@@ -75,7 +75,7 @@ bool FSpeedTreeExportModule::isSpeedTree(AActor* TargetActor)
 
 	_Folder.ParseIntoArray(Parsed, TEXT("/"), false);
 
-	return Parsed[0] == "SpeedTree";
+	return Parsed[0] == "SpeedTree" && Parsed.Num() > 1;
 }
 
 void FSpeedTreeExportModule::PluginButtonClicked()
@@ -90,7 +90,11 @@ void FSpeedTreeExportModule::PluginButtonClicked()
 
 	//UE_LOG(LogTemp, Warning, TEXT("EEEEE"));
 
-	FString FileName = "C:\\temp\\trees_UEexport.ustf";
+	FText Title1 = FText::FromString(TEXT("Confirm action"));
+	FText DialogText1 = FText::FromString(TEXT("Do you really want to export trees?"));
+	if (FMessageDialog::Open(EAppMsgType::YesNo, DialogText1, &Title1) == EAppReturnType::No) return;
+
+	FString FileName = "C:\\temp\\trees.ustf";
 	
 	ClearIni(FileName);
 
@@ -106,9 +110,9 @@ void FSpeedTreeExportModule::PluginButtonClicked()
 		FString SectionName = GetSectionName(TargetActor);
 		
 		FVector Location = TargetActor->GetActorLocation();
-		FString X = GetFloat(Location.X, 2);
-		FString Y = GetFloat(Location.Y, 2);
-		FString Z = GetFloat(Location.Z, 2);
+		FString X = FString::SanitizeFloat(Location.X);
+		FString Y = FString::SanitizeFloat(Location.Y);
+		FString Z = FString::SanitizeFloat(Location.Z);
 
 		FRotator Rotation = TargetActor->GetActorRotation();
 		FString RotationZ = GetFloat(Rotation.Yaw, 2);
@@ -125,12 +129,18 @@ void FSpeedTreeExportModule::PluginButtonClicked()
 
 	GConfig->Flush(false, FileName);
 
-	// MessageBox
-	FText DialogText = FText::Format(
-		LOCTEXT("Export Success!", "Exported {0} trees success!"),
-		FText::FromString(FString::FromInt(i))
-	);
-	FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+	if (i > 0)
+	{
+		FText Title2 = FText::FromString(TEXT("Export Success!"));
+		FString DialogText2 = FString::Printf(TEXT("Exported %d tree%s"), i, (i < 2) ? "" : "s");
+		FMessageDialog::Debugf(FText::FromString(DialogText2), &Title2);
+	}
+	else
+	{
+		FText Title3 = FText::FromString(TEXT("Export Failed!"));
+		FString DialogText3 = FString::Printf(TEXT("Please select at least %d tree\nfrom \"SpeedTree\\Tree Name\" folder!"), 1);
+		FMessageDialog::Debugf(FText::FromString(DialogText3), &Title3);
+	}
 }
 
 void FSpeedTreeExportModule::AddMenuExtension(FMenuBuilder& Builder)
